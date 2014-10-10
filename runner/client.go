@@ -1,7 +1,6 @@
 package runner
 
 import (
-	"fmt"
 	"sync"
 	"time"
 
@@ -11,27 +10,19 @@ import (
 )
 
 type Client struct {
-	cid              int
-	conn             *nats.Conn
-	subjects         []string
-	requests         int
-	warmupDuration   time.Duration
-	shutdownDuration time.Duration
-	rate             int
-	progressBar      *pb.ProgressBar
-	received         map[string]int32
-	delivered        map[string]int32
+	cid         int
+	conn        *nats.Conn
+	subjects    []string
+	requests    int
+	rate        int
+	progressBar *pb.ProgressBar
+	profiler    *Profiler
+	received    map[string]int32
+	delivered   map[string]int32
 	sync.Mutex
 }
 
-func (c *Client) Run() {
-	c.subscribe()
-	time.Sleep(c.warmupDuration)
-	c.publish()
-	time.Sleep(c.shutdownDuration)
-}
-
-func (c *Client) subscribe() {
+func (c *Client) Subscribe() {
 	for _, subject := range c.subjects {
 		c.received[subject] = 0
 		c.conn.Subscribe(subject, func(m *nats.Msg) {
@@ -44,7 +35,7 @@ func (c *Client) subscribe() {
 	}
 }
 
-func (c *Client) publish() {
+func (c *Client) Publish() {
 	for _, subject := range c.subjects {
 		c.delivered[subject] = 0
 	}
@@ -66,26 +57,11 @@ func (c *Client) publishToSubjects() {
 		}
 
 		c.delivered[subject]++
-		err := c.conn.Publish(subject, []byte(uuid.New()))
-		if err != nil {
-			panic(err)
-		}
+		c.profiler.Profile(func() {
+			err := c.conn.Publish(subject, []byte(uuid.New()))
+			if err != nil {
+				panic(err)
+			}
+		})
 	}
-}
-
-func (c *Client) String() string {
-	var received int32
-	for _, r := range c.received {
-		received += r
-	}
-
-	var delivered int32
-	for _, d := range c.delivered {
-		delivered += d
-	}
-
-	return fmt.Sprintf(
-		"cid: %d, Received: %d, Delivered: %d",
-		c.cid, received, delivered,
-	)
 }

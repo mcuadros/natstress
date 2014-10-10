@@ -15,21 +15,24 @@ type Runner struct {
 	Url              string
 	NumClients       int
 	NumSubjects      int
-	NumRequests      int
+	NumMessages      int
 	WarmupDuration   time.Duration
 	ShutdownDuration time.Duration
 	Rate             int
 	clients          []*Client
 	subjects         []string
 	progressBar      *pb.ProgressBar
+	profiler         *Profiler
 	sync.WaitGroup
 }
 
 func (r *Runner) Run() {
-	r.createProgressBar()
+	r.createProgressBarAndProfiler()
 	r.buildSubjects()
 	r.buildClients()
-	r.runClients()
+	r.subscribeClients()
+	r.publishClients()
+	r.printResume()
 }
 
 func (r *Runner) buildSubjects() {
@@ -56,40 +59,68 @@ func (r *Runner) buildClient(cid int) *Client {
 	}
 
 	return &Client{
-		cid:              cid,
-		conn:             nc,
-		subjects:         r.subjects,
-		requests:         r.NumRequests / r.NumClients / r.NumSubjects,
-		warmupDuration:   r.WarmupDuration,
-		shutdownDuration: r.ShutdownDuration,
-		rate:             r.Rate,
-		progressBar:      r.progressBar,
-		received:         make(map[string]int32),
-		delivered:        make(map[string]int32),
+		cid:         cid,
+		conn:        nc,
+		subjects:    r.subjects,
+		requests:    r.NumMessages / r.NumClients / r.NumSubjects,
+		rate:        r.Rate,
+		progressBar: r.progressBar,
+		profiler:    r.profiler,
+		received:    make(map[string]int32),
+		delivered:   make(map[string]int32),
 	}
 }
 
-func (r *Runner) runClients() {
-	fmt.Println("Sending and received messages...")
-	r.progressBar.Start()
+func (r *Runner) subscribeClients() {
+	fmt.Printf("Subscribing clients to %d subject(s) ... ", r.NumSubjects)
+	r.profiler.Start()
+
 	for _, client := range r.clients {
 		r.Add(1)
 		go func(c *Client) {
-			c.Run()
+			c.Subscribe()
+			r.Done()
+		}(client)
+	}
+	r.Wait()
+	fmt.Println(brush.Green("OK"))
+}
+
+func (r *Runner) publishClients() {
+	fmt.Println("Publishing and receiving messages... ")
+	r.progressBar.Start()
+
+	r.profiler.Start()
+	for _, client := range r.clients {
+		r.Add(1)
+		go func(c *Client) {
+			c.Publish()
 			r.Done()
 		}(client)
 	}
 
 	r.Wait()
-	r.printResume()
+	r.profiler.Stop()
+
+	time.Sleep(r.ShutdownDuration)
 }
 
 func (r *Runner) printResume() {
-
+	r.profiler.Stop()
+	fmt.Printf("\n\nPunlishing summary:\n")
+	fmt.Printf("  Count:\t%d messages.\n", r.profiler.count)
+	fmt.Printf("  Total:\t%4.4f secs.\n", r.profiler.duration.Seconds())
+	fmt.Printf("  Slowest:\t%4.4d µs.\n", r.profiler.max.Nanoseconds()/1000)
+	fmt.Printf("  Fastest:\t%4.4d µs.\n", r.profiler.min.Nanoseconds()/1000)
+	fmt.Printf("  Average:\t%4.4d µs.\n", r.profiler.avg.Nanoseconds()/1000)
+	//fmt.Printf("  Requests/sec:\t%4.4f\n", r.rps)
 }
 
-func (r *Runner) createProgressBar() {
-	r.progressBar = pb.New(r.NumRequests * r.NumClients)
+func (r *Runner) createProgressBarAndProfiler() {
+	r.progressBar = pb.New(r.NumMessages * r.NumClients)
 	r.progressBar.ShowSpeed = true
 	r.progressBar.Width = 80
+	r.progressBar.Prefix("Received ")
+
+	r.profiler = &Profiler{}
 }

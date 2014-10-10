@@ -43,7 +43,7 @@ func main() {
 		Url:              *flagServer,
 		NumClients:       *flagClients,
 		NumSubjects:      *flagSubjects,
-		NumRequests:      *flagRequests,
+		NumMessages:      *flagRequests,
 		Rate:             *flagRate,
 		WarmupDuration:   *flagWarmupDuration,
 		ShutdownDuration: *flagShutdownDuration,
