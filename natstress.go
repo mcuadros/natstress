@@ -2,6 +2,8 @@ package main
 
 import (
 	"flag"
+	"fmt"
+	"os"
 	"time"
 
 	"github.com/apcera/nats"
@@ -17,7 +19,22 @@ var (
 	flagShutdownDuration = flag.Duration("shutdown", 5*time.Second, "")
 )
 
+var usage = `Usage: natstress [options...]
+
+Options:
+  -h            NATS server url. (Default: nats://localhost:4222)
+  -s            Number of subjects.
+  -m            Number of message to send in each subject.
+  -c            Number of clients to run concurrently.
+  --warmup      Time to wait before start to deliver messages after connect
+                to the server. (Default: 50ms)
+  --shutdown    Wait time for received all the messages sent. (Default: 5s)
+`
+
 func main() {
+	flag.Usage = func() {
+		fmt.Fprint(os.Stderr, usage)
+	}
 	flag.Parse()
 
 	runner := &runner.Runner{
