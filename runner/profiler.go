@@ -13,6 +13,7 @@ type Profiler struct {
 	start    time.Time
 	duration time.Duration
 	avg      time.Duration
+	rate     float64
 	sync.Mutex
 }
 
@@ -45,4 +46,5 @@ func (p *Profiler) Add(d time.Duration) {
 func (p *Profiler) Stop() {
 	p.avg = time.Duration(int64(p.total) / p.count)
 	p.duration = time.Now().Sub(p.start)
+	p.rate = float64(p.duration.Seconds()) / float64(p.count)
 }

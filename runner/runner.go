@@ -16,7 +16,6 @@ type Runner struct {
 	NumClients       int
 	NumSubjects      int
 	NumMessages      int
-	WarmupDuration   time.Duration
 	ShutdownDuration time.Duration
 	Rate             int
 	clients          []*Client
@@ -101,19 +100,17 @@ func (r *Runner) publishClients() {
 
 	r.Wait()
 	r.profiler.Stop()
-
 	time.Sleep(r.ShutdownDuration)
 }
 
 func (r *Runner) printResume() {
-	r.profiler.Stop()
 	fmt.Printf("\n\nPunlishing summary:\n")
 	fmt.Printf("  Count:\t%d messages.\n", r.profiler.count)
 	fmt.Printf("  Total:\t%4.4f secs.\n", r.profiler.duration.Seconds())
 	fmt.Printf("  Slowest:\t%4.4d µs.\n", r.profiler.max.Nanoseconds()/1000)
 	fmt.Printf("  Fastest:\t%4.4d µs.\n", r.profiler.min.Nanoseconds()/1000)
 	fmt.Printf("  Average:\t%4.4d µs.\n", r.profiler.avg.Nanoseconds()/1000)
-	//fmt.Printf("  Requests/sec:\t%4.4f\n", r.rps)
+	fmt.Printf("  Messages/sec:\t%4.4f\n", r.profiler.rate)
 }
 
 func (r *Runner) createProgressBarAndProfiler() {

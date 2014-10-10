@@ -28,8 +28,6 @@ Options:
   -m            Number of message to send in each subject.
   -c            Number of clients to run concurrently.
   -r            Rate limit, in seconds.
-  --warmup      Time to wait before start to deliver messages after connect
-                to the server. (Default: 50ms)
   --shutdown    Wait time for received all the messages sent. (Default: 5s)
 `
 
@@ -45,7 +43,6 @@ func main() {
 		NumSubjects:      *flagSubjects,
 		NumMessages:      *flagRequests,
 		Rate:             *flagRate,
-		WarmupDuration:   *flagWarmupDuration,
 		ShutdownDuration: *flagShutdownDuration,
 	}
 
