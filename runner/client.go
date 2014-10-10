@@ -7,6 +7,7 @@ import (
 
 	"code.google.com/p/go-uuid/uuid"
 	"github.com/apcera/nats"
+	"github.com/mcuadros/pb"
 )
 
 type Client struct {
@@ -17,6 +18,7 @@ type Client struct {
 	warmupDuration   time.Duration
 	shutdownDuration time.Duration
 	rate             int
+	progressBar      *pb.ProgressBar
 	received         map[string]int32
 	delivered        map[string]int32
 	sync.Mutex
@@ -35,6 +37,8 @@ func (c *Client) subscribe() {
 		c.conn.Subscribe(subject, func(m *nats.Msg) {
 			c.Lock()
 			defer c.Unlock()
+
+			c.progressBar.Increment()
 			c.received[m.Subject]++
 		})
 	}
@@ -60,6 +64,7 @@ func (c *Client) publishToSubjects() {
 		if c.rate > 0 {
 			<-throttle
 		}
+
 		c.delivered[subject]++
 		err := c.conn.Publish(subject, []byte(uuid.New()))
 		if err != nil {

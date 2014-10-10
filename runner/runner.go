@@ -7,6 +7,8 @@ import (
 
 	"code.google.com/p/go-uuid/uuid"
 	"github.com/apcera/nats"
+	"github.com/aybabtme/color/brush"
+	"github.com/mcuadros/pb"
 )
 
 type Runner struct {
@@ -19,23 +21,15 @@ type Runner struct {
 	Rate             int
 	clients          []*Client
 	subjects         []string
+	progressBar      *pb.ProgressBar
 	sync.WaitGroup
 }
 
 func (r *Runner) Run() {
+	r.createProgressBar()
 	r.buildSubjects()
 	r.buildClients()
-
-	for _, client := range r.clients {
-		r.Add(1)
-		go func(c *Client) {
-			c.Run()
-			r.Done()
-		}(client)
-	}
-
-	r.Wait()
-	r.printResume()
+	r.runClients()
 }
 
 func (r *Runner) buildSubjects() {
@@ -43,15 +37,16 @@ func (r *Runner) buildSubjects() {
 	for i := 0; i < r.NumSubjects; i++ {
 		r.subjects[i] = uuid.New()
 	}
-
-	r.subjects[0] = "foo"
 }
 
 func (r *Runner) buildClients() {
+	fmt.Printf("Creating %d client(s) ... ", r.NumClients)
 	r.clients = make([]*Client, r.NumClients)
 	for i := 0; i < r.NumClients; i++ {
 		r.clients[i] = r.buildClient(i)
 	}
+
+	fmt.Println(brush.Green("OK"))
 }
 
 func (r *Runner) buildClient(cid int) *Client {
@@ -64,17 +59,37 @@ func (r *Runner) buildClient(cid int) *Client {
 		cid:              cid,
 		conn:             nc,
 		subjects:         r.subjects,
-		requests:         r.NumRequests,
+		requests:         r.NumRequests / r.NumClients / r.NumSubjects,
 		warmupDuration:   r.WarmupDuration,
 		shutdownDuration: r.ShutdownDuration,
 		rate:             r.Rate,
+		progressBar:      r.progressBar,
 		received:         make(map[string]int32),
 		delivered:        make(map[string]int32),
 	}
 }
 
-func (r *Runner) printResume() {
+func (r *Runner) runClients() {
+	fmt.Println("Sending and received messages...")
+	r.progressBar.Start()
 	for _, client := range r.clients {
-		fmt.Println(client)
+		r.Add(1)
+		go func(c *Client) {
+			c.Run()
+			r.Done()
+		}(client)
 	}
+
+	r.Wait()
+	r.printResume()
+}
+
+func (r *Runner) printResume() {
+
+}
+
+func (r *Runner) createProgressBar() {
+	r.progressBar = pb.New(r.NumRequests * r.NumClients)
+	r.progressBar.ShowSpeed = true
+	r.progressBar.Width = 80
 }
