@@ -16,6 +16,7 @@ type Client struct {
 	requests         int
 	warmupDuration   time.Duration
 	shutdownDuration time.Duration
+	rate             int
 	received         map[string]int32
 	delivered        map[string]int32
 	sync.Mutex
@@ -50,7 +51,15 @@ func (c *Client) publish() {
 }
 
 func (c *Client) publishToSubjects() {
+	var throttle <-chan time.Time
+	if c.rate > 0 {
+		throttle = time.Tick(time.Duration(1e6/(c.rate)) * time.Microsecond)
+	}
+
 	for _, subject := range c.subjects {
+		if c.rate > 0 {
+			<-throttle
+		}
 		c.delivered[subject]++
 		err := c.conn.Publish(subject, []byte(uuid.New()))
 		if err != nil {

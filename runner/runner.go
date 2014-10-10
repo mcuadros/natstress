@@ -16,6 +16,7 @@ type Runner struct {
 	NumRequests      int
 	WarmupDuration   time.Duration
 	ShutdownDuration time.Duration
+	Rate             int
 	clients          []*Client
 	subjects         []string
 	sync.WaitGroup
@@ -66,6 +67,7 @@ func (r *Runner) buildClient(cid int) *Client {
 		requests:         r.NumRequests,
 		warmupDuration:   r.WarmupDuration,
 		shutdownDuration: r.ShutdownDuration,
+		rate:             r.Rate,
 		received:         make(map[string]int32),
 		delivered:        make(map[string]int32),
 	}
