@@ -8,7 +8,7 @@ import (
 	"code.google.com/p/go-uuid/uuid"
 	"github.com/apcera/nats"
 	"github.com/aybabtme/color/brush"
-	"github.com/mcuadros/pb"
+	"github.com/cheggaaa/pb"
 )
 
 type Runner struct {
@@ -116,7 +116,7 @@ func (r *Runner) printResume() {
 func (r *Runner) createProgressBarAndProfiler() {
 	r.progressBar = pb.New(r.NumMessages * r.NumClients)
 	r.progressBar.ShowSpeed = true
-	r.progressBar.Width = 80
+	r.progressBar.SetWidth(80)
 	r.progressBar.Prefix("Received ")
 
 	r.profiler = &Profiler{}

@@ -6,7 +6,7 @@ import (
 
 	"code.google.com/p/go-uuid/uuid"
 	"github.com/apcera/nats"
-	"github.com/mcuadros/pb"
+	"github.com/cheggaaa/pb"
 )
 
 type Client struct {
