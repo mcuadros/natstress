@@ -47,7 +47,7 @@ Punlishing summary:
   Fastest:  0002 µs.
   Average:  0007 µs.
   Messages/sec: 7412.9942
-``
+```
 
 License
 -------
